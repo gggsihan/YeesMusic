@@ -5,13 +5,16 @@
   "scripts": {
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
-    "lint": "vue-cli-service lint"
+    "lint": "vue-cli-service lint",
+    "mock": "mock",
+    "mock:proxy": "mock -r http://localhost:3000"
   },
   "dependencies": {
     "axios": "^0.19.0",
     "babel-runtime": "^6.26.0",
     "better-scroll": "^1.15.2",
     "core-js": "^3.3.2",
+    "easier-mock": "^1.1.0",
     "fastclick": "^1.0.6",
     "stylus": "^0.54.7",
     "stylus-loader": "^3.0.2",

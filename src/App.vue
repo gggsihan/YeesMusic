@@ -1,10 +1,10 @@
 <template>
   <div id="app">
     <m-header></m-header>
-    <tab></tab>
     <keep-alive>
       <router-view></router-view>
     </keep-alive>
+    <tab></tab>
   </div>
 </template>
 <script>

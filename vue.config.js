@@ -1,7 +1,7 @@
 var path = require('path')
 
-function resolve(dir) {
-  return path.join(__dirname, dir);
+function resolve (dir) {
+  return path.join(__dirname, dir)
 }
 
 module.exports = {
@@ -11,7 +11,7 @@ module.exports = {
       alias: {
         '@': resolve('src'),
         'common' : resolve('src/common'),
-        'api' : resolve('src/api'),
+        'api' : resolve('src/api')
       }
     },
   },
