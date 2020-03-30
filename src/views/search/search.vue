@@ -3,11 +3,16 @@
     <div class="ui-search" ref="seContent">
       <!-- 搜索框 -->
       <div class="search-input" ref="seInput">
-        <input v-model="searchVal" @input="onInput()" :placeholder="defaultSearch.showKeyword"/>
-        <span class="highlight" @click="goSearch(searchVal)">搜索</span>
-        <span @click="goCancle()">取消</span>
+        <div class="input-cont">
+          <input v-model="searchVal" @input="onInput()" :placeholder="defaultSearch.showKeyword"/>
+          <i v-if="searchVal" class="icon-delete clear" @click="clearSearch()"></i>
+        </div>
+        <div>
+          <span class="highlight" @click="goSearch(searchVal)">搜索</span>
+          <span @click="goCancle()">取消</span>
+        </div>
       </div>
-      <scroll class="search-cont" ref="seScroll">
+      <scroll :data="songList" class="search-cont" ref="seScroll">
         <div>
           <div v-if="!searchVal">
             <!-- 搜索历史 -->
@@ -35,10 +40,13 @@
             </div>
           </div>
           <!-- 搜素关联词 -->
-          <div v-if="searchVal">
+          <div v-if="searchVal && !doneSearch">
             <div class="search-item" @click="goSearch(item.keyword)" v-for="(item, index) in suggestList" :key="index">
               <i class="icon-search"></i><span>{{item.keyword}}</span>
             </div>
+          </div>
+          <div v-if="searchVal && doneSearch">
+            <song-list :songList="songList" :showType="'search'"></song-list>
           </div>
         </div>
       </scroll>
@@ -49,19 +57,25 @@
 <script>
 import searchApi from 'api/search'
 import Scroll from '@/components/base/scroll/scroll'
+import SongList from '@/components/base/song-list/song-list'
 
 export default {
+  name: 'search',
   data () {
     return {
       defaultSearch: {},
       searchVal: '',
       historyList: [],
       hotList: [],
-      suggestList: []
+      suggestList: [],
+      doneSearch: false,
+      songList: [],
+      startPage: 0
     }
   },
   components: {
-    Scroll
+    Scroll,
+    SongList
   },
   created () {
     searchApi.getDefaultSearch().then(data => {
@@ -78,10 +92,10 @@ export default {
   },
   methods: {
     goCancle () {
-      this.clearSearch()
       this.$router.go(-1)
     },
     onInput () {
+      this.doneSearch = false
       if (this.searchVal) {
         searchApi.searchSuggest(this.searchVal).then(data => {
           this.suggestList = data.result.allMatch
@@ -97,17 +111,22 @@ export default {
         this.searchVal = this.defaultSearch.realkeyword
       }
       this.setStorage()
+      searchApi.searchKeyword(this.searchVal, this.startPage).then(data => {
+        this.doneSearch = true
+        this.songList = data.result.songs
+      })
     },
     clearSearch () {
       this.searchVal = ''
       this.suggestList = ''
+      this.doneSearch = false
     },
     setStorage () {
       if (!window.localStorage) {
         return false
       } else {
         if (this.historyList.indexOf(this.searchVal) === -1) {
-          this.historyList.push(this.searchVal)
+          this.historyList.unshift(this.searchVal)
           window.localStorage.setItem('historyList', JSON.stringify(this.historyList))
         }
       }
@@ -155,18 +174,31 @@ export default {
     justify-content: space-around
     align-items: center
     color: $color-text-l
-    input
+    .input-cont
+      position: relative
       flex: 1
       height: 30px
       background: $color-background-l
       border-radius 30px
       padding: 0 10px
-      color: $color-text
-    input::placeholder
-      font-size: font-size-small-s !important
-      color: $color-text-d
+      input
+        width: 90%
+        height: 30px
+        color: $color-text
+        background: $color-background-l
+      input::placeholder
+        font-size: font-size-small-s !important
+        color: $color-text-d
+      .clear
+        position: absolute
+        top: 10px
+        right: 10px
+        font-size: $font-size-small-s
+        color: $color-text-l
     span
       margin-left: 10px
+    .icon-back
+      margin-right: 10px
   .search-cont
     top: 44px
     overflow: hidden
