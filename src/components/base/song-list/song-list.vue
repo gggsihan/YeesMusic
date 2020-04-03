@@ -3,7 +3,7 @@
     <div class="song-item" v-for="(song, index) in songList" :key="song.id" @click="getSongUrl(song)">
       <span v-if="showType === 'playlist'">{{index + 1}}</span>
       <div class="item-desc">
-        <h2>{{song.name}}</h2><p>{{songDetail(song)}}</p>
+        <h2>{{song.name}}</h2><p v-if="song.album">{{songDetail(song)}}</p>
       </div>
     </div>
   </div>
@@ -55,6 +55,8 @@ export default {
   color: $color-text
   font-size: $font-size-medium-x
   border-bottom: 0.5px solid $color-background-l
+  span
+    margin-right: 10px
   .item-desc
     flex: 1
     h2

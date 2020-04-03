@@ -89,6 +89,11 @@ const singerApi = {
       offset: 0,
       limit: 10
     })
+  },
+  getSingerSongs (id) {
+    return get('/api/artists', {
+      id: id
+    })
   }
 }
 export default singerApi

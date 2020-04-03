@@ -1,34 +1,38 @@
 <template>
   <div class="singer-detail">
-
+    <music-list :bgImg="singerData.picUrl"
+      :title="singerData.name" :desc="singerData.briefDesc" :songs="hotSongs"></music-list>
   </div>
 </template>
 
 <script>
+import MusicList from '@/components/music-list/music-list'
+import singerApi from 'api/singer'
 export default {
   data () {
     return {
-
+      id: '',
+      singerData: {},
+      hotSongs: []
     }
   },
+  created () {
+    this.id = this.$route.params.id
+    this.getSingerSongs()
+  },
   methods: {
-
+    getSingerSongs () {
+      singerApi.getSingerSongs(this.id).then((data) => {
+        this.singerData = data.artist
+        this.hotSongs = data.hotSongs
+      })
+    }
   },
   components: {
-
+    MusicList
   }
 }
 </script>
 
 <style lang="stylus" scoped>
-@import '~common/stylus/variable'
-
-.singer-detail
-  position fixed
-  z-index 100
-  top 0
-  bottom 0
-  left 0
-  right 0
-  background $color-background
 </style>
