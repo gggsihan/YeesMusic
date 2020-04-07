@@ -15,9 +15,7 @@
         </ul>
       </div>
     </scroll>
-    <transition name="slide">
-      <router-view></router-view>
-    </transition>
+    <router-view></router-view>
   </div>
 </template>
 
@@ -85,59 +83,42 @@ export default {
 <style lang="stylus" scoped>
 @import '~common/stylus/variable';
 
-.singer {
-  position: fixed;
-  top: 88px;
-  bottom: 0;
-  width: 100%;
+.singer
+  position: fixed
+  top: 88px
+  bottom: 0
+  width: 100%
 
-  .singer-subtitle {
-    height: 44px;
-    white-space: nowrap;
-    overflow-y: auto;
-    display: flex;
-    align-items: center;
+  .singer-subtitle
+    height: 44px
+    white-space: nowrap
+    overflow-y: auto
+    display: flex
+    align-items: center
 
-    &.singer-subtitle::-webkit-scrollbar {
-      display: none;
-    }
-
-    span {
-      color: $color-text-l;
-      margin: 0 5px;
-      padding: 2px;
-      border: 1px solid $color-text-l;
-      border-radius: 5px;
-      display: inline-block;
-
-      &.active {
-        color: $color-theme;
-        border: 1px solid $color-theme;
-      }
-    }
-  }
-  .singer-cont {
-    height: 100%;
+    &.singer-subtitle::-webkit-scrollbar
+      display: none
+    span
+      color: $color-text-l
+      margin: 0 5px
+      padding: 2px
+      border: 1px solid $color-text-l
+      border-radius: 5px
+      display: inline-block
+      &.active
+        color: $color-theme
+        border: 1px solid $color-theme
+  .singer-cont
+    height: 100%
     overflow: hidden
-    .singer-item {
-      height: 80px;
-      padding: 0 16px;
-      display: flex;
-      align-items: center;
-      img {
-        width: 50px;
-        height: 50px;
-        border-radius: 100%;
-        margin-right: 20px;
-      }
-    }
-
-  }
-}
-.slide-enter-active, .slide-leave-active {
-  transition all 0.3s
-}
-.slide-enter, .slide-leave-to {
-  transform translate3d(100%, 0, 0)
-}
+    .singer-item
+      height: 80px
+      padding: 0 16px
+      display: flex
+      align-items: center
+      img
+        width: 50px
+        height: 50px
+        border-radius: 100%
+        margin-right: 20px
 </style>
