@@ -1,13 +1,14 @@
 <template>
-  <div class="music-list" ref="musicList">
-    <div class="back">
+  <div class="music-list">
+    <div class="back" @click="back">
       <i class="icon-back"></i>
     </div>
     <h1 class="title" v-html="title"></h1>
     <div class="bg-img" ref="bgImg" :style="bgStyle">
-      <div></div>
+      <div class="filter" ref="filter"></div>
     </div>
-    <scroll class="song-cont" ref="songScroll">
+    <div class="bg-layer" ref="layer"></div>
+    <scroll @scroll="scroll" :probe-type="probeType" :listen-scroll="listenScroll" :data="songs" class="song-cont" ref="songScroll">
       <song-list :songList="songs"></song-list>
     </scroll>
   </div>
@@ -16,6 +17,12 @@
 <script>
 import Scroll from '@/components/base/scroll/scroll'
 import SongList from '@/components/base/song-list/song-list'
+import { prefixStyle } from 'common/js/dom'
+
+const RESERVED_HEIGHT = 44
+const transform = prefixStyle('transform')
+const backdrop = prefixStyle('backdrop-filter')
+
 export default {
   props: {
     bgImg: {
@@ -46,15 +53,57 @@ export default {
   },
   data () {
     return {
+      scrollY: 0
     }
   },
-  created () {},
+  watch: {
+    scrollY (newY) {
+      let translateY = Math.max(this.minTransY, newY)
+      let zIndex = 0
+      let scale = 1
+      let blur = 0
+      this.$refs.layer.style[transform] = `translate3d(0,${translateY}px,0)`
+      const percent = Math.abs(newY / this.imgHeight)
+      if (newY > 0) {
+        // 列表下拉图片放大
+        scale = 1 + percent
+        zIndex = 10
+      } else {
+        // 上划实现图片高斯模糊
+        blur = Math.min(20 * percent, 20)
+      }
+      this.$refs.filter.style[backdrop] = `blur(${blur}px)`
+      // 列表上划
+      if (newY < this.minTransY) {
+        zIndex = 10
+        this.$refs.bgImg.style.paddingTop = 0
+        this.$refs.bgImg.style.height = `${RESERVED_HEIGHT}px`
+      } else {
+        this.$refs.bgImg.style.paddingTop = '70%'
+        this.$refs.bgImg.style.height = 0
+      }
+      this.$refs.bgImg.style.zIndex = zIndex
+      this.$refs.bgImg.style[transform] = `scale(${scale})`
+    }
+  },
+  created () {
+    this.probeType = 3
+    this.listenScroll = true
+  },
   mounted () {
     this.countScrollHeight()
   },
   methods: {
     countScrollHeight () {
-      this.$refs.songScroll.$el.style.height = `${this.$refs.musicList.clientHeight - this.$refs.bgImg.clientHeight}px`
+      this.imgHeight = this.$refs.bgImg.clientHeight
+      this.minTransY = -this.imgHeight + RESERVED_HEIGHT
+      this.$refs.songScroll.$el.style.top = `${this.imgHeight}px`
+    },
+    scroll (pos) {
+      this.scrollY = pos.y
+    },
+    back () {
+      this.$router.back()
     }
   }
 }
@@ -87,7 +136,7 @@ export default {
     width: 80%
     no-wrap()
     text-align: center
-    line-height: 40px
+    line-height: 44px
     font-size: $font-size-large
     color: $color-theme
   .bg-img
@@ -97,7 +146,22 @@ export default {
     padding-top: 70%
     transform-origin: top
     background-size: cover
+    .filter
+      position: absolute
+      top: 0
+      left: 0
+      width: 100%
+      height: 100%
+      background: rgba(7,17,27,0.4)
+  .bg-layer
+    position: relative
+    height: 100%
+    background: $color-background
   .song-cont
-    overflow: hidden
-
+    position: fixed
+    top: 0
+    bottom: 0
+    left: 0
+    right: 0
+    background: $color-background
 </style>
