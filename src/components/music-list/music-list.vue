@@ -9,7 +9,7 @@
     </div>
     <div class="bg-layer" ref="layer"></div>
     <scroll @scroll="scroll" :probe-type="probeType" :listen-scroll="listenScroll" :data="songs" class="song-cont" ref="songScroll">
-      <song-list :songList="songs"></song-list>
+      <song-list @select="selectItem" :songList="songs"></song-list>
       <div class="loading-container" v-show="!songs.length">
         <loading></loading>
       </div>
@@ -22,6 +22,7 @@ import Scroll from '@/components/base/scroll/scroll'
 import SongList from '@/components/base/song-list/song-list'
 import Loading from '@/components/base/loading/loading'
 import { prefixStyle } from 'common/js/dom'
+import { mapActions } from 'vuex'
 
 const RESERVED_HEIGHT = 44
 const transform = prefixStyle('transform')
@@ -109,7 +110,13 @@ export default {
     },
     back () {
       this.$router.back()
-    }
+    },
+    selectItem (song, index) {
+      this.selectPlay({ list: this.songs, index })
+    },
+    ...mapActions([
+      'selectPlay'
+    ])
   }
 }
 </script>

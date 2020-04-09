@@ -1,6 +1,6 @@
 <template>
   <div class="song-list">
-    <div class="song-item" v-for="(song, index) in songList" :key="song.id" @click="getSongUrl(song)">
+    <div class="song-item" v-for="(song, index) in songList" :key="song.id" @click="selectSong(song, index)">
       <span v-if="showType === 'playlist'">{{index + 1}}</span>
       <div class="item-desc">
         <h2>{{song.name}}</h2><p v-if="song.album">{{songDetail(song)}}</p>
@@ -10,7 +10,6 @@
 </template>
 
 <script>
-import songApi from 'api/song'
 
 export default {
   props: {
@@ -34,10 +33,8 @@ export default {
       }
       return ''
     },
-    getSongUrl (song) {
-      songApi.getSongUrl(song.id).then((data) => {
-        console.log(data)
-      })
+    selectSong (song, index) {
+      this.$emit('select', song, index)
     }
   },
   created () {},
