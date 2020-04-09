@@ -15,7 +15,7 @@
         <div class="middle">
           <div class="middle-l">
             <div class="cd-wrapper" ref="cdWrapper">
-              <div class="cd">
+              <div class="cd" :class="playCd">
                 <img class="image" :src="albumImgUrl" alt="">
               </div>
             </div>
@@ -26,13 +26,13 @@
             <div class="icon i-left">
               <i class="icon-sequence"></i>
             </div>
-            <div class="icon i-left">
+            <div class="icon i-left" @click="prev" :class="disabledCls">
               <i class="icon-prev"></i>
             </div>
-            <div class="icon i-center">
-              <i class="icon-play"></i>
+            <div class="icon i-center" @click="togglePlay" :class="disabledCls">
+              <i :class="playIcon"></i>
             </div>
-            <div class="icon i-right">
+            <div class="icon i-right" @click="next" :class="disabledCls">
               <i class="icon-next"></i>
             </div>
             <div class="icon i-right">
@@ -45,50 +45,89 @@
     <transition name="mini">
       <div class="mini-player" v-show="!fullScreen">
         <div class="icon" @click="open">
-          <img width="40" height="40" :src="albumImgUrl">
+          <img width="40" height="40" :class="playCd" :src="albumImgUrl">
         </div>
       </div>
     </transition>
+    <audio ref="audio" :src="musicUrl" @canplay="ready" @error="onError">
+    </audio>
   </div>
 </template>
 
 <script>
-import { mapGetters } from 'vuex'
+import { mapGetters, mapMutations } from 'vuex'
 import animations from 'create-keyframe-animation'
 import { prefixStyle } from 'common/js/dom'
+import songApi from 'api/song'
 
 const transform = prefixStyle('transform')
 
 export default {
+  data () {
+    return {
+      musicUrl: '',
+      albumImgUrl: '',
+      authorName: '',
+      songReady: false
+    }
+  },
   computed: {
+    playIcon () {
+      return this.playing ? 'icon-pause' : 'icon-play'
+    },
+    playCd () {
+      return this.playing ? 'play' : 'play pause'
+    },
+    disabledCls () {
+      return this.songReady ? '' : 'disabled'
+    },
     ...mapGetters([
+      'playing',
       'fullScreen',
       'playlist',
-      'currentSong'
-    ]),
-    albumImgUrl () {
-      if (this.currentSong.al) {
-        return this.currentSong.al.picUrl
-      }
-      return ''
+      'currentSong',
+      'currentIndex'
+    ])
+  },
+  watch: {
+    currentSong (song) {
+      this.albumImgUrl = song.al.picUrl
+      const name = []
+      song.ar.forEach(ar => {
+        name.push(ar.name)
+      })
+      this.authorName = name.join('/')
+      this._getCurrSongUrl(song.id)
     },
-    authorName () {
-      if (this.currentSong.ar) {
-        const name = []
-        this.currentSong.ar.forEach(ar => {
-          name.push(ar.name)
-        })
-        return name.join('/')
-      }
-      return ''
+    playing (flag) {
+      const audio = this.$refs.audio
+      // 在获取到url之前不对audio进行操作
+      this.$nextTick(() => {
+        if (this.musicUrl) {
+          flag ? audio.play() : audio.pause()
+        }
+      })
     }
   },
   methods: {
+    ...mapMutations({
+      setFullScreen: 'SET_FULL_SCREEN',
+      setPlaying: 'SET_PLAYING_STATE',
+      setCurrentIndx: 'SET_CURRENT_INDEX'
+    }),
+    _getCurrSongUrl (id) {
+      songApi.getSongUrl(id).then(data => {
+        this.musicUrl = data.data[0].url
+        this.$nextTick(() => {
+          this.$refs.audio.play()
+        })
+      })
+    },
     back () {
-      this.$store.commit('SET_FULL_SCREEN', false)
+      this.setFullScreen(false)
     },
     open () {
-      this.$store.commit('SET_FULL_SCREEN', true)
+      this.setFullScreen(true)
     },
     enter (el, done) {
       const { x, y, scale } = this._getPosAndScale()
@@ -126,7 +165,6 @@ export default {
     afterLeave () {
       this.$refs.cdWrapper.style.transition = ''
       this.$refs.cdWrapper.style[transform] = ''
-      this.$refs.cdWrapper.removeEventListener('transitionend')
     },
     // 获取初始位置和缩放
     _getPosAndScale () {
@@ -143,6 +181,42 @@ export default {
         y,
         scale
       }
+    },
+    togglePlay () {
+      this.setPlaying(!this.playing)
+    },
+    prev () {
+      if (!this.songReady) return
+      let index = this.currentIndex - 1
+      if (index === -1) {
+        index = this.playlist.length - 1
+      }
+      this.setCurrentIndx(index)
+      this.musicUrl = ''
+      if (!this.playing) {
+        this.togglePlay()
+      }
+      this.songReady = false
+    },
+    next () {
+      if (!this.songReady) return
+      let index = this.currentIndex + 1
+      if (index === this.playlist.length) {
+        index = 0
+      }
+      this.setCurrentIndx(index)
+      this.musicUrl = ''
+      if (!this.playing) {
+        this.togglePlay()
+      }
+      this.songReady = false
+    },
+    ready () {
+      this.songReady = true
+    },
+    onError () {
+      console.log('error')
+      this.songReady = true
     }
   }
 }
@@ -232,6 +306,10 @@ export default {
             box-sizing: border-box
             border: 10px solid rgba(255, 255, 255, 0.1)
             border-radius: 50%
+            &.play
+              animation: rotate 20s linear infinite
+            &.pause
+              animation-play-state: paused
             .image
               position: absolute
               left: 0
@@ -284,4 +362,15 @@ export default {
         height: 100%
         width: 100%
         border-radius: 50%
+        &.play
+          animation: rotate 20s linear infinite
+        &.pause
+          animation-play-state: paused
+
+@keyframes rotate
+  0%
+    transform: rotate(0)
+  100%
+    transform: rotate(360deg)
+
 </style>
