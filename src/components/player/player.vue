@@ -22,6 +22,13 @@
           </div>
         </div>
         <div class="bottom">
+          <div class="progress-wrapper">
+            <span class="time time-l">{{formatTime(currentTime)}}</span>
+            <div class="progress-bar-wrapper">
+              <progress-bar :percent="percent" @percentChange="onProgressBarChange"></progress-bar>
+            </div>
+            <span class="time time-r">{{formatTime(songTime)}}</span>
+          </div>
           <div class="operators">
             <div class="icon i-left">
               <i class="icon-sequence"></i>
@@ -45,12 +52,15 @@
     <transition name="mini">
       <div class="mini-player" v-show="!fullScreen">
         <div class="icon" @click="open">
-          <img width="40" height="40" :class="playCd" :src="albumImgUrl">
+          <progress-circle :radius="64" :percent="percent">
+            <img :class="playCd" :src="albumImgUrl">
+          </progress-circle>
         </div>
       </div>
     </transition>
-    <audio ref="audio" :src="musicUrl" @canplay="ready" @error="onError">
+    <audio ref="audio" :src="musicUrl" @canplay="ready" @error="onError" @timeupdate="updateTime">
     </audio>
+    <alert alertCont="未获取到音乐播放地址" ref="alert"></alert>
   </div>
 </template>
 
@@ -59,6 +69,9 @@ import { mapGetters, mapMutations } from 'vuex'
 import animations from 'create-keyframe-animation'
 import { prefixStyle } from 'common/js/dom'
 import songApi from 'api/song'
+import Alert from '@/components/base/alert/alert'
+import ProgressBar from '@/components/base/progress-bar/progress-bar'
+import ProgressCircle from '@/components/base/progress-circle/progress-circle'
 
 const transform = prefixStyle('transform')
 
@@ -68,7 +81,9 @@ export default {
       musicUrl: '',
       albumImgUrl: '',
       authorName: '',
-      songReady: false
+      songTime: '',
+      songReady: false,
+      currentTime: 0
     }
   },
   computed: {
@@ -80,6 +95,9 @@ export default {
     },
     disabledCls () {
       return this.songReady ? '' : 'disabled'
+    },
+    percent () {
+      return this.currentTime / this.songTime
     },
     ...mapGetters([
       'playing',
@@ -97,6 +115,7 @@ export default {
         name.push(ar.name)
       })
       this.authorName = name.join('/')
+      this.songTime = song.dt / 1000
       this._getCurrSongUrl(song.id)
     },
     playing (flag) {
@@ -107,6 +126,11 @@ export default {
           flag ? audio.play() : audio.pause()
         }
       })
+    },
+    percent (newP) {
+      if (newP >= 1) {
+        this.next()
+      }
     }
   },
   methods: {
@@ -119,7 +143,11 @@ export default {
       songApi.getSongUrl(id).then(data => {
         this.musicUrl = data.data[0].url
         this.$nextTick(() => {
-          this.$refs.audio.play()
+          // 当获取url为空时，暂停播放
+          this.musicUrl ? this.$refs.audio.play() : (() => {
+            this.setPlaying(false)
+            this.$refs.alert.show()
+          })()
         })
       })
     },
@@ -211,13 +239,31 @@ export default {
       }
       this.songReady = false
     },
+    // 播放器操作方法
     ready () {
       this.songReady = true
     },
     onError () {
-      console.log('error')
       this.songReady = true
+    },
+    updateTime (e) {
+      this.currentTime = e.target.currentTime
+    },
+    formatTime (interval) {
+      interval = interval | 0
+      const minute = interval / 60 | 0
+      const second = interval % 60
+      return `${minute}:${second < 10 ? '0' + second : second}`
+    },
+    onProgressBarChange (percent) {
+      this.$refs.audio.currentTime = this.songTime * percent
+      if (!this.playing) this.togglePlay()
     }
+  },
+  components: {
+    Alert,
+    ProgressBar,
+    ProgressCircle
   }
 }
 </script>
@@ -321,6 +367,24 @@ export default {
       position: absolute
       bottom: 50px
       width: 100%
+      .progress-wrapper
+        display: flex
+        align-items: center
+        width: 80%
+        margin: 0px auto
+        padding: 10px 0
+        .time
+          color: $color-text
+          font-size: $font-size-small
+          flex: 0 0 30px
+          line-height: 30px
+          width: 30px
+          &.time-l
+            text-align: left
+          &.time-r
+            text-align: right
+        .progress-bar-wrapper
+          flex: 1
       .operators
         display: flex
         align-items: center
@@ -355,12 +419,12 @@ export default {
     .icon
       width: 100%
       height: 100%
-      border: 3px solid rgba(255, 255, 255, 0.1)
-      border-radius: 50%
-      box-sizing: border-box
       img
-        height: 100%
-        width: 100%
+        position: absolute
+        left: 4px
+        top: 4px
+        height: 56px
+        width: 56px
         border-radius: 50%
         &.play
           animation: rotate 20s linear infinite
