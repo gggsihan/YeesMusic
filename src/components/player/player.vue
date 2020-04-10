@@ -30,8 +30,8 @@
             <span class="time time-r">{{formatTime(songTime)}}</span>
           </div>
           <div class="operators">
-            <div class="icon i-left">
-              <i class="icon-sequence"></i>
+            <div class="icon i-left" @click="changeMode">
+              <i :class="iconMode"></i>
             </div>
             <div class="icon i-left" @click="prev" :class="disabledCls">
               <i class="icon-prev"></i>
@@ -58,7 +58,8 @@
         </div>
       </div>
     </transition>
-    <audio ref="audio" :src="musicUrl" @canplay="ready" @error="onError" @timeupdate="updateTime">
+    <audio ref="audio" :src="musicUrl" @canplay="ready" @error="onError"
+      @timeupdate="updateTime" @ended="end">
     </audio>
     <alert alertCont="未获取到音乐播放地址" ref="alert"></alert>
   </div>
@@ -68,6 +69,8 @@
 import { mapGetters, mapMutations } from 'vuex'
 import animations from 'create-keyframe-animation'
 import { prefixStyle } from 'common/js/dom'
+import { playMode } from 'common/js/config'
+import { shuffle } from 'common/js/util'
 import songApi from 'api/song'
 import Alert from '@/components/base/alert/alert'
 import ProgressBar from '@/components/base/progress-bar/progress-bar'
@@ -99,16 +102,23 @@ export default {
     percent () {
       return this.currentTime / this.songTime
     },
+    iconMode () {
+      return this.mode === playMode.sequence ? 'icon-sequence'
+        : this.mode === playMode.loop ? 'icon-loop' : 'icon-random'
+    },
     ...mapGetters([
       'playing',
       'fullScreen',
       'playlist',
       'currentSong',
-      'currentIndex'
+      'currentIndex',
+      'mode',
+      'sequenceList'
     ])
   },
   watch: {
-    currentSong (song) {
+    currentSong (song, oldSong) {
+      if (song.id === oldSong.id) return
       this.albumImgUrl = song.al.picUrl
       const name = []
       song.ar.forEach(ar => {
@@ -126,18 +136,15 @@ export default {
           flag ? audio.play() : audio.pause()
         }
       })
-    },
-    percent (newP) {
-      if (newP >= 1) {
-        this.next()
-      }
     }
   },
   methods: {
     ...mapMutations({
       setFullScreen: 'SET_FULL_SCREEN',
       setPlaying: 'SET_PLAYING_STATE',
-      setCurrentIndx: 'SET_CURRENT_INDEX'
+      setCurrentIndex: 'SET_CURRENT_INDEX',
+      setPlayMode: 'SET_MODE',
+      setPlayList: 'SET_PLAYINGLIST'
     }),
     _getCurrSongUrl (id) {
       songApi.getSongUrl(id).then(data => {
@@ -219,7 +226,7 @@ export default {
       if (index === -1) {
         index = this.playlist.length - 1
       }
-      this.setCurrentIndx(index)
+      this.setCurrentIndex(index)
       this.musicUrl = ''
       if (!this.playing) {
         this.togglePlay()
@@ -232,7 +239,7 @@ export default {
       if (index === this.playlist.length) {
         index = 0
       }
-      this.setCurrentIndx(index)
+      this.setCurrentIndex(index)
       this.musicUrl = ''
       if (!this.playing) {
         this.togglePlay()
@@ -246,6 +253,17 @@ export default {
     onError () {
       this.songReady = true
     },
+    end () {
+      if (this.mode === playMode.loop) {
+        this.loop()
+      } else {
+        this.next()
+      }
+    },
+    loop () {
+      this.$refs.audio.currentTime = 0
+      this.$refs.audio.play()
+    },
     updateTime (e) {
       this.currentTime = e.target.currentTime
     },
@@ -258,6 +276,24 @@ export default {
     onProgressBarChange (percent) {
       this.$refs.audio.currentTime = this.songTime * percent
       if (!this.playing) this.togglePlay()
+    },
+    changeMode () {
+      const mode = (this.mode + 1) % 3
+      this.setPlayMode(mode)
+      let list = null
+      if (mode === playMode.random) {
+        list = shuffle(this.sequenceList)
+      } else {
+        list = this.sequenceList
+      }
+      this.setPlayList(list)
+      this.resetCurrentIndex(list)
+    },
+    resetCurrentIndex (list) {
+      let index = list.findIndex((item) => {
+        return item.id === this.currentSong.id
+      })
+      this.setCurrentIndex(index)
     }
   },
   components: {

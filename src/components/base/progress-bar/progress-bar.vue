@@ -40,7 +40,11 @@ export default {
   },
   methods: {
     progressClick (e) {
-      this._offset(e.offsetX)
+      const rect = this.$refs.progressBar.getBoundingClientRect()
+      const offset = e.pageX - rect.left
+      this._offset(offset)
+      // 这里当我们点击processBtn的时候，e.offset获取不对
+      // this._offset(e.offsetX)
       this._trigglePercent()
     },
     progressTouchStart (e) {
