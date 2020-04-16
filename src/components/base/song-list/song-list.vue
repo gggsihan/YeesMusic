@@ -3,7 +3,7 @@
     <div class="song-item" v-for="(song, index) in songList" :key="song.id" @click="selectSong(song, index)">
       <span v-if="showType === 'playlist'">{{index + 1}}</span>
       <div class="item-desc">
-        <h2>{{song.name}}</h2><p v-if="song.album">{{songDetail(song)}}</p>
+        <h2>{{song.name}}</h2><p v-if="song.al">{{songDetail(song)}}</p>
       </div>
     </div>
   </div>
@@ -25,11 +25,11 @@ export default {
   methods: {
     songDetail (song) {
       const artists = []
-      if (song && song.artists) {
-        song.artists.forEach(art => {
+      if (song && song.ar) {
+        song.ar.forEach(art => {
           artists.push(art.name)
         })
-        return artists.join('/') + ' - ' + song.album.name
+        return artists.join('/') + ' - ' + song.al.name
       }
       return ''
     },

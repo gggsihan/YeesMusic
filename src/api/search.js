@@ -11,7 +11,7 @@ const searchApi = {
   },
   // 搜索关键词
   searchKeyword (keywords, offset) {
-    return get('/api/search', { keywords, limit: 10, offset })
+    return get('/api/search', { keywords, limit: 10, offset, type: 1018 })
   },
   // 搜索建议
   searchSuggest (keywords) {

@@ -46,7 +46,7 @@
             </div>
           </div>
           <div v-if="searchVal && doneSearch">
-            <song-list :songList="songList" :showType="'search'"></song-list>
+            <song-list :songList="songList" @select="selectItem" :showType="'search'"></song-list>
           </div>
         </div>
       </scroll>
@@ -58,6 +58,7 @@
 import searchApi from 'api/search'
 import Scroll from '@/components/base/scroll/scroll'
 import SongList from '@/components/base/song-list/song-list'
+import { mapActions } from 'vuex'
 
 export default {
   name: 'search',
@@ -113,7 +114,7 @@ export default {
       this.setStorage()
       searchApi.searchKeyword(this.searchVal, this.startPage).then(data => {
         this.doneSearch = true
-        this.songList = data.result.songs
+        this.songList = data.result.song.songs
       })
     },
     clearSearch () {
@@ -147,7 +148,13 @@ export default {
         window.localStorage.removeItem('historyList')
         this.historyList = []
       }
-    }
+    },
+    selectItem (song, index) {
+      this.selectPlay({ list: this.songList, index })
+    },
+    ...mapActions([
+      'selectPlay'
+    ])
   }
 }
 </script>
@@ -186,6 +193,7 @@ export default {
         height: 30px
         color: $color-text
         background: $color-background-l
+        outline: none
       input::placeholder
         font-size: font-size-small-s !important
         color: $color-text-d

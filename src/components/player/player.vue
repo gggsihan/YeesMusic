@@ -12,16 +12,32 @@
           <h1 class="title">{{currentSong.name}}</h1>
           <h2 class="sub-title">{{authorName}}</h2>
         </div>
-        <div class="middle">
-          <div class="middle-l">
+        <div class="middle"
+          @touchstart="middleTouchStart"
+          @touchmove="middleTouchMove"
+          @touchend="middleTouchEnd"
+        >
+          <div class="middle-l" ref="middelL">
             <div class="cd-wrapper" ref="cdWrapper">
               <div class="cd" :class="playCd">
                 <img class="image" :src="albumImgUrl" alt="">
               </div>
             </div>
           </div>
+          <scroll class="middle-r" ref="lyricList" :data="lyric && lyric.lines">
+            <div class="lyric-wrapper">
+              <div v-if="lyric">
+                <p class="text" :class="{'current': currentLineNum === index}"
+                  ref="lyricLine" v-for="(line, index) in lyric.lines" :key="index">{{line.txt}}</p>
+              </div>
+            </div>
+          </scroll>
         </div>
         <div class="bottom">
+          <div class="dot-wrapper">
+            <span class="dot" :class="{'active':currentShow==='cd'}"></span>
+            <span class="dot" :class="{'active':currentShow==='lyric'}"></span>
+          </div>
           <div class="progress-wrapper">
             <span class="time time-l">{{formatTime(currentTime)}}</span>
             <div class="progress-bar-wrapper">
@@ -71,12 +87,15 @@ import animations from 'create-keyframe-animation'
 import { prefixStyle } from 'common/js/dom'
 import { playMode } from 'common/js/config'
 import { shuffle } from 'common/js/util'
+import Lyric from 'common/js/lyric-parse'
 import songApi from 'api/song'
 import Alert from '@/components/base/alert/alert'
 import ProgressBar from '@/components/base/progress-bar/progress-bar'
 import ProgressCircle from '@/components/base/progress-circle/progress-circle'
+import Scroll from '@/components/base/scroll/scroll'
 
 const transform = prefixStyle('transform')
+const transitionDuration = prefixStyle('transitionDuration')
 
 export default {
   data () {
@@ -86,7 +105,10 @@ export default {
       authorName: '',
       songTime: '',
       songReady: false,
-      currentTime: 0
+      currentTime: 0,
+      lyric: null,
+      currentLineNum: 0,
+      currentShow: 'cd'
     }
   },
   computed: {
@@ -119,14 +141,13 @@ export default {
   watch: {
     currentSong (song, oldSong) {
       if (song.id === oldSong.id) return
-      this.albumImgUrl = song.al.picUrl
-      const name = []
-      song.ar.forEach(ar => {
-        name.push(ar.name)
-      })
-      this.authorName = name.join('/')
-      this.songTime = song.dt / 1000
+      this._initSongMsg(song)
+      this.musicUrl = ''
       this._getCurrSongUrl(song.id)
+      if (this.lyric) {
+        this.lyric.stop()
+      }
+      this._getSongLyric(song.id)
     },
     playing (flag) {
       const audio = this.$refs.audio
@@ -138,6 +159,9 @@ export default {
       })
     }
   },
+  created () {
+    this.touch = {}
+  },
   methods: {
     ...mapMutations({
       setFullScreen: 'SET_FULL_SCREEN',
@@ -146,6 +170,8 @@ export default {
       setPlayMode: 'SET_MODE',
       setPlayList: 'SET_PLAYINGLIST'
     }),
+
+    /* 获取歌曲播放链接 */
     _getCurrSongUrl (id) {
       songApi.getSongUrl(id).then(data => {
         this.musicUrl = data.data[0].url
@@ -158,12 +184,49 @@ export default {
         })
       })
     },
+    /* 获取歌词 */
+    _getSongLyric (id) {
+      songApi.getSongLyric(id).then(data => {
+        this.lyric = new Lyric(data.lrc.lyric, this.handleLyric)
+        if (this.playing) {
+          this.lyric.play()
+        }
+      }).catch(() => {
+        this.lyric = null
+        this.currentLineNum = 0
+      })
+    },
+    /* 初始化歌曲信息 */
+    _initSongMsg (song) {
+      this.albumImgUrl = song.al.picUrl
+      const name = []
+      song.ar.forEach(ar => {
+        name.push(ar.name)
+      })
+      this.authorName = name.join('/')
+      this.songTime = song.dt / 1000
+    },
+
+    /* 处理歌词滚动 */
+    handleLyric ({ lineNum, txt }) {
+      this.currentLineNum = lineNum
+      if (lineNum > 5) {
+        let lineEl = this.$refs.lyricLine[lineNum - 5]
+        this.$refs.lyricList.scrollToElement(lineEl, 1000)
+      } else {
+        this.$refs.lyricList.scrollTo(0, 0, 1000)
+      }
+    },
+
+    /* 切换全屏/mini */
     back () {
       this.setFullScreen(false)
     },
     open () {
       this.setFullScreen(true)
     },
+
+    /* 切换全屏动画 */
     enter (el, done) {
       const { x, y, scale } = this._getPosAndScale()
       let animation = {
@@ -201,7 +264,7 @@ export default {
       this.$refs.cdWrapper.style.transition = ''
       this.$refs.cdWrapper.style[transform] = ''
     },
-    // 获取初始位置和缩放
+    /* 获取初始位置和缩放 */
     _getPosAndScale () {
       const targetWidth = 64
       const paddingRight = 48
@@ -217,36 +280,49 @@ export default {
         scale
       }
     },
+
+    /* 歌曲操作 暂停/播放/前进/后退 */
     togglePlay () {
+      if (!this.songReady || !this.musicUrl) return
       this.setPlaying(!this.playing)
+      if (this.lyric) {
+        this.lyric.togglePlay()
+      }
     },
     prev () {
       if (!this.songReady) return
-      let index = this.currentIndex - 1
-      if (index === -1) {
-        index = this.playlist.length - 1
-      }
-      this.setCurrentIndex(index)
-      this.musicUrl = ''
-      if (!this.playing) {
-        this.togglePlay()
+      if (this.playlist.length === 1) {
+        this.loop()
+      } else {
+        let index = this.currentIndex - 1
+        if (index === -1) {
+          index = this.playlist.length - 1
+        }
+        this.setCurrentIndex(index)
+        if (!this.playing) {
+          this.togglePlay()
+        }
       }
       this.songReady = false
     },
     next () {
       if (!this.songReady) return
-      let index = this.currentIndex + 1
-      if (index === this.playlist.length) {
-        index = 0
-      }
-      this.setCurrentIndex(index)
-      this.musicUrl = ''
-      if (!this.playing) {
-        this.togglePlay()
+      if (this.playlist.length === 1) {
+        this.loop()
+      } else {
+        let index = this.currentIndex + 1
+        if (index === this.playlist.length) {
+          index = 0
+        }
+        this.setCurrentIndex(index)
+        if (!this.playing) {
+          this.togglePlay()
+        }
       }
       this.songReady = false
     },
-    // 播放器操作方法
+
+    /* 播放器操作方法 */
     ready () {
       this.songReady = true
     },
@@ -260,23 +336,38 @@ export default {
         this.next()
       }
     },
-    loop () {
-      this.$refs.audio.currentTime = 0
-      this.$refs.audio.play()
-    },
     updateTime (e) {
       this.currentTime = e.target.currentTime
     },
+
+    /* 循环播放操作 */
+    loop () {
+      this.$refs.audio.currentTime = 0
+      this.$refs.audio.play()
+      if (this.lyric) {
+        this.lyric.seek(0)
+      }
+    },
+
+    /* 辅助函数--将毫秒转化成分秒 */
     formatTime (interval) {
       interval = interval | 0
       const minute = interval / 60 | 0
       const second = interval % 60
       return `${minute}:${second < 10 ? '0' + second : second}`
     },
+
+    /* 进度条变化回调 */
     onProgressBarChange (percent) {
-      this.$refs.audio.currentTime = this.songTime * percent
+      const currentTime = this.songTime * percent
+      this.$refs.audio.currentTime = currentTime
       if (!this.playing) this.togglePlay()
+      if (this.lyric) {
+        this.lyric.seek(currentTime * 1000)
+      }
     },
+
+    /* 切换播放模式 */
     changeMode () {
       const mode = (this.mode + 1) % 3
       this.setPlayMode(mode)
@@ -289,17 +380,70 @@ export default {
       this.setPlayList(list)
       this.resetCurrentIndex(list)
     },
+    /* 切换模式后重置当前播放index */
     resetCurrentIndex (list) {
       let index = list.findIndex((item) => {
         return item.id === this.currentSong.id
       })
       this.setCurrentIndex(index)
+    },
+
+    /* 切换cd页和歌词页操作 */
+    middleTouchStart (e) {
+      this.touch.initiated = true
+      const touches = e.touches[0]
+      this.touch.startX = touches.pageX
+      this.touch.startY = touches.pageY
+    },
+    middleTouchMove (e) {
+      if (!this.touch.initiated) return
+      const touches = e.touches[0]
+      const deltaX = touches.pageX - this.touch.startX
+      const deltaY = touches.pageY - this.touch.startY
+      if (Math.abs(deltaY) > Math.abs(deltaX)) return
+      const left = this.currentShow === 'cd' ? 0 : -window.innerWidth
+      const offsetWidth = Math.min(0, Math.max(-window.innerWidth, left + deltaX))
+      this.touch.percent = Math.abs(offsetWidth / window.innerWidth)
+      this.$refs.lyricList.$el.style[transform] = `translate3d(${offsetWidth}px, 0, 0)`
+      this.$refs.lyricList.$el.style[transitionDuration] = 0
+      this.$refs.middelL.style.opacity = 1 - this.touch.percent
+      this.$refs.middelL.style[transitionDuration] = 0
+    },
+    middleTouchEnd () {
+      this.touch.initialed = false
+      let offsetWidth
+      let opacity
+      if (this.currentShow === 'cd') {
+        if (this.touch.percent > 0.1) {
+          offsetWidth = -window.innerWidth
+          opacity = 0
+          this.currentShow = 'lyric'
+        } else {
+          offsetWidth = 0
+          opacity = 1
+        }
+      } else {
+        if (this.touch.percent < 0.9) {
+          offsetWidth = 0
+          this.currentShow = 'cd'
+          opacity = 1
+        } else {
+          offsetWidth = -window.innerWidth
+          opacity = 0
+        }
+      }
+      const time = 300
+      this.$refs.lyricList.$el.style[transform] = `translate3d(${offsetWidth}px, 0, 0)`
+      this.$refs.lyricList.$el.style[transitionDuration] = `${time}ms`
+      this.$refs.middelL.style.opacity = opacity
+      this.$refs.middelL.style[transitionDuration] = `${time}ms`
     }
   },
   components: {
     Alert,
     ProgressBar,
-    ProgressCircle
+    ProgressCircle,
+    Scroll
   }
 }
 </script>
@@ -399,10 +543,42 @@ export default {
               width: 100%
               height: 100%
               border-radius: 50%
+      .middle-r
+        display: inline-block
+        vertical-align: top
+        width: 100%
+        height: 100%
+        overflow: hidden
+        .lyric-wrapper
+          width: 80%
+          margin: 0 auto
+          overflow: hidden
+          text-align: center
+          .text
+            line-height: 32px
+            color: $color-text-l
+            font-size: $font-size-medium
+            &.current
+              color: $color-text
     .bottom
       position: absolute
       bottom: 50px
       width: 100%
+      .dot-wrapper
+        text-align: center
+        font-size: 0
+        .dot
+          display: inline-block
+          vertical-align: middle
+          margin: 0 4px
+          width: 8px
+          height: 8px
+          border-radius: 50%
+          background: $color-text-l
+          &.active
+            width: 20px
+            border-radius: 5px
+            background: $color-text-ll
       .progress-wrapper
         display: flex
         align-items: center
