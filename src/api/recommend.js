@@ -8,7 +8,7 @@ const recommendApi = {
   },
   // 获取推荐歌单
   recomList () {
-    return get('/api/personalized', { limit: 12 })
+    return get('/api/personalized', { limit: 6 })
   },
   // 获取推荐MV
   recomMvList () {

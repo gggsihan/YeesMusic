@@ -176,11 +176,5 @@ export default {
     left: 0
     right: 0
     background: $color-background
-    .loading-container
-      position: absolute
-      width: 100%
-      top: 50%
-      transform: translateY(-50%)
-      display: flex
-      justify-content: center
+
 </style>

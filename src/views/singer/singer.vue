@@ -9,11 +9,12 @@
       <div>
         <ul class="singer-list">
           <li class="singer-item" v-for="singer in singerList" :key="singer.id" @click="selectSinger(singer)">
-            <img :src="singer.picUrl" alt="">
+            <img v-lazy="singer.picUrl" alt="">
             <span>{{singer.name}}</span>
           </li>
         </ul>
       </div>
+      <div v-show="loadStatus"><loading></loading></div>
     </scroll>
     <router-view></router-view>
   </div>
@@ -21,19 +22,18 @@
 
 <script>
 import Scroll from '@/components/base/scroll/scroll'
+import Loading from '@/components/base/loading/loading'
 import singerApi from 'api/singer'
 export default {
   data () {
     return {
       category: [],
-      singerList: {
-        type: Array,
-        default: []
-      },
+      singerList: [],
       cat: {
         type: Object,
         default: {}
-      }
+      },
+      loadStatus: true
     }
   },
   created () {
@@ -52,17 +52,21 @@ export default {
     getSingerList () {
       singerApi.getSingerList(this.cat).then(data => {
         this.singerList = data.artists
+        this.setLoadStatus(false)
       })
     },
     // 获取热门歌手
     getHotSinger () {
       singerApi.getHotSinger().then(data => {
         this.singerList = data.artists
+        this.setLoadStatus(false)
       })
     },
     // 选择歌手种类
     chooseCat (cat) {
       this.cat = cat
+      this.setLoadStatus(true)
+      this.singerList = []
       if (cat.code === '000') {
         this.getHotSinger()
       } else {
@@ -72,10 +76,15 @@ export default {
     // 选择歌手
     selectSinger (singer) {
       this.$router.push({ path: `/singer/${singer.id}` })
+    },
+    // 设置load状态
+    setLoadStatus (status) {
+      this.loadStatus = status
     }
   },
   components: {
-    Scroll
+    Scroll,
+    Loading
   }
 }
 </script>
@@ -85,9 +94,11 @@ export default {
 
 .singer
   position: fixed
-  top: 88px
-  bottom: 0
+  top: 44px
+  bottom: 64px
   width: 100%
+  display: flex
+  flex-direction: column
 
   .singer-subtitle
     height: 44px

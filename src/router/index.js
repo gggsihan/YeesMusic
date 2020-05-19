@@ -5,6 +5,7 @@ import Rank from '@/views/rank/rank'
 import Search from '@/views/search/search'
 import Singer from '@/views/singer/singer'
 import SingerDetail from '@/views/singer-detail/singer-detail'
+import RankDetail from '@/views/rank-detail/rank-detail'
 
 Vue.use(VueRouter)
 
@@ -19,7 +20,11 @@ const routes = [
   },
   {
     path: '/rank',
-    component: Rank
+    component: Rank,
+    children: [{
+      path: ':idx',
+      component: RankDetail
+    }]
   },
   {
     path: '/search',

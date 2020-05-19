@@ -17,10 +17,11 @@
             <span class="rec-more" @click="showMoreRec()">更多</span>
           </div>
           <div class="dist-cont">
-            <div class="dist-item" v-for="item in recDistList" :key="item.id">
-              <img @load="loadImg()" :src="item.picUrl" alt />
-              <p>{{item.name}}</p>
-            </div>
+            <tab-list
+              v-for="item in recDistList" :key="item.id"
+              :imgUrl="item.picUrl"
+              :desc="item.name"
+            ></tab-list>
           </div>
         </div>
       </div>
@@ -31,6 +32,7 @@
 <script>
 import Scroll from '@/components/base/scroll/scroll'
 import Slider from '@/components/base/slider/slider'
+import TabList from '@/components/base/tab-list/tab-list'
 import recommendApi from 'api/recommend'
 export default {
   data () {
@@ -41,7 +43,8 @@ export default {
   },
   components: {
     Slider,
-    Scroll
+    Scroll,
+    TabList
   },
   created () {
     recommendApi.recomList().then(data => { // 获取推荐歌单列表
@@ -64,7 +67,8 @@ export default {
 </script>
 
 <style lang="stylus" scoped>
-@import '~common/stylus/variable';
+@import '~common/stylus/variable'
+@import '~common/stylus/mixin'
 
 .recommend
   color: $color-theme
@@ -92,23 +96,8 @@ export default {
         font-size: $font-size-small
         background: $color-background-l
     .dist-cont
-      display: flex
+      flex-between()
       flex-wrap: wrap
-      margin: 16px
-      justify-content: space-between
-      .dist-item
-        width: 30%
-        color: $color-text
-        img
-          width: 100%
-          border-radius: 6px
-        p
-          display: -webkit-box
-          -webkit-box-orient: vertical
-          -webkit-line-clamp: 2
-          overflow: hidden
-          margin: 5px 0 10px 0
-          width: 100%
-          font-size: $font-size-small
+      padding: 0 16px
 
 </style>
