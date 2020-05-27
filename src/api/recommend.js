@@ -4,7 +4,7 @@ import { get } from './http'
 const recommendApi = {
   // 获取轮播图
   getBanner () {
-    return get('/api/banner')
+    return get('/api/banner?_=1234')
   },
   // 获取推荐歌单
   recomList () {
