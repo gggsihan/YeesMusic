@@ -34,7 +34,7 @@ export default {
 .rect
   display: flex
   align-items: center
-  height: 120px
+  padding: 10px 0
   .rect-img
     width: 30%
     margin-right: 16px

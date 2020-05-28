@@ -1,7 +1,7 @@
 <template>
   <div id="app">
     <m-header></m-header>
-    <keep-alive exclude="search">
+    <keep-alive exclude="search,playlist-detail">
       <router-view></router-view>
     </keep-alive>
     <player></player>

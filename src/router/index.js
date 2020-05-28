@@ -6,6 +6,7 @@ import Search from '@/views/search/search'
 import Singer from '@/views/singer/singer'
 import SingerDetail from '@/views/singer-detail/singer-detail'
 import RankDetail from '@/views/rank-detail/rank-detail'
+import PlaylistDetail from '@/views/playlist-detail/playlist-detail'
 
 Vue.use(VueRouter)
 
@@ -37,6 +38,10 @@ const routes = [
       path: ':id',
       component: SingerDetail
     }]
+  },
+  {
+    path: '/playlist-detail/:id',
+    component: PlaylistDetail
   }
 ]
 

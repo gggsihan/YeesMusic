@@ -21,6 +21,7 @@
               v-for="item in recDistList" :key="item.id"
               :imgUrl="item.picUrl"
               :desc="item.name"
+              @click.native="goDetail(item.id)"
             ></tab-list>
           </div>
         </div>
@@ -61,7 +62,10 @@ export default {
         this.checkLoaded = true
       }
     },
-    showMoreRec () {}
+    showMoreRec () {},
+    goDetail (id) {
+      this.$router.push({ path: `/playlist-detail/${id}` })
+    }
   }
 }
 </script>

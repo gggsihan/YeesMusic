@@ -98,6 +98,7 @@ export default {
       font-weight: $font-weight-bold
     .rect-cont
       padding: 0 16px
+      margin-top: 10px
     .dist-cont
       padding: 0 16px
       flex-between()
